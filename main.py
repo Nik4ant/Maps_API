@@ -55,6 +55,9 @@ class MapWindow(QWidget):
         # toponym_longitude, toponym_lattitude = toponym_coodrinates.split(" ")
 
         self.coordinates = list(map(float, self.lineEdit_cordinates.text().replace(',', ' ').split()))
+        if not self.coordinates:
+            self.lineEdit_cordinates.setText('0,0')
+            self.coordinates = list(map(float, self.lineEdit_cordinates.text().replace(',', ' ').split()))
 
         # Собираем параметры для запроса к StaticMapsAPI:
         map_params = {
@@ -74,14 +77,17 @@ class MapWindow(QWidget):
         self.pixmap_map.setPixmap(pixmap)
 
     def keyPressEvent(self, event):
-        if event.key == Qt.Key_Up:
+        print(event.key(), Qt.Key_Up)
+        if event.key() == Qt.Key_Up:
             self.coordinates[1] += DELTA_MOVE
-        if event.key == Qt.Key_Down:
+        if event.key() == Qt.Key_Down:
             self.coordinates[1] -= DELTA_MOVE
-        if event.key == Qt.Key_Right:
+        if event.key() == Qt.Key_Right:
             self.coordinates[0] += DELTA_MOVE
-        if event.key == Qt.Key_Left:
+        if event.key() == Qt.Key_Left:
             self.coordinates[0] -= DELTA_MOVE
+        self.lineEdit_cordinates.setText(', '.join(map(str, self.coordinates)))
+        self.show_map()
 
 
 if __name__ == '__main__':
