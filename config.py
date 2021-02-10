@@ -1,5 +1,6 @@
 DELTA_MOVE = 1
 DEFAULT_SCALE = 1
+
 MAP_API_SERVER = "http://static-maps.yandex.ru/1.x/"
 
 SEARCH_API_KEY = "ecd7defe-5a55-463a-9efe-1f7363c10c53"

@@ -26,35 +26,73 @@
     <item>
      <layout class="QHBoxLayout" name="hlayout_inputs_and_map" stretch="0,2">
       <item>
-       <layout class="QFormLayout" name="formLayout">
-        <property name="leftMargin">
-         <number>1</number>
-        </property>
-        <property name="topMargin">
-         <number>1</number>
-        </property>
-        <property name="rightMargin">
-         <number>1</number>
-        </property>
-        <property name="bottomMargin">
-         <number>1</number>
-        </property>
-        <item row="0" column="0">
-         <widget class="QLabel" name="label_cordinates">
-          <property name="font">
-           <font>
-            <pointsize>16</pointsize>
-           </font>
+       <layout class="QVBoxLayout" name="vlayout_inputs" stretch="0,1,0">
+        <item>
+         <layout class="QFormLayout" name="formLayout__inputs">
+          <property name="leftMargin">
+           <number>1</number>
           </property>
-          <property name="text">
-           <string>Координаты (через запятую)</string>
+          <property name="topMargin">
+           <number>1</number>
+          </property>
+          <property name="rightMargin">
+           <number>1</number>
+          </property>
+          <property name="bottomMargin">
+           <number>1</number>
+          </property>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_cordinates">
+            <property name="font">
+             <font>
+              <pointsize>16</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Координаты (через запятую)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="lineEdit_cordinates"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_search">
+            <property name="font">
+             <font>
+              <pointsize>16</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Запрос</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="lineEdit_search"/>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QComboBox" name="combo_type">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="editable">
+           <bool>true</bool>
+          </property>
+          <property name="currentText">
+           <string/>
+          </property>
+          <property name="currentIndex">
+           <number>-1</number>
           </property>
          </widget>
         </item>
-        <item row="0" column="1">
-         <widget class="QLineEdit" name="lineEdit_cordinates"/>
-        </item>
-        <item row="1" column="1">
+        <item>
          <widget class="QPushButton" name="button_show">
           <property name="text">
            <string>Показать</string>
