@@ -1,4 +1,4 @@
-def caclulate_spn(toponym: dict) -> str:
+def calculate_spn(toponym: dict) -> str:
     """Функция вычисляет spn для масштабирования по топониму"""
     envelope = toponym["boundedBy"]["Envelope"]
     lower_corner = envelope["lowerCorner"].split()
@@ -11,6 +11,15 @@ def caclulate_spn(toponym: dict) -> str:
 
 
 def get_toponym_by_json(json: dict, index=0) -> dict:
-    """Функция возвращает топоним по индексу (по умолчанию первый)"""
+    """Функция возвращает топоним из геокодера по индексу (по умолчанию: 0)"""
     return json["response"]["GeoObjectCollection"]["featureMember"][
         index]["GeoObject"]
+
+
+def get_toponym_center_pos(toponym: dict) -> tuple:
+    return toponym["Point"]["pos"]
+
+
+def change_request_map_type(request: str, old_type: str, new_type="skl") -> str:
+    """Функция меняет тип карты в запросе на новый, возвращая новый запрос"""
+    return request.replace(f"&l={old_type}", f"&l={new_type}")

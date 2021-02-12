@@ -3,9 +3,9 @@ from io import BytesIO
 
 from engine import *
 from config import *
+from form import Ui_Form
 
 from PyQt5.QtWidgets import *
-from PyQt5 import uic
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
@@ -14,11 +14,34 @@ from PIL import Image
 from PIL.ImageQt import ImageQt
 
 
-class MapWindow(QWidget):
+class MapKeyFilter(QObject):
+    """
+    Это класс представляющий фильтр событий, нужный для решения проблемы
+    "карты". Т.к. некоторын виджеты могут перехватывать эти события => метод
+    keyPressEvent у окна с картой не будет получать события.
+    (Например, виджет QLineEdit перехватывал нажатия левой и правой стрелок)
+    """
+
+    # NOTE: Здесь учитывается Enter с keypad!!
+    # https://doc.qt.io/qt-5/qt.html#Key-enum (Qt::Key_Enter)
+    # (P.s. было обноружено при тестах, но это не являеться багом)
+    KEYS_FOR_MAP = (Qt.Key_Right,  Qt.Key_Left, Qt.Key_Up, Qt.Key_Down,
+                    Qt.Key_Enter)
+
+    def eventFilter(self, object: 'QObject', event: 'QEvent') -> bool:
+        if event.type() == QEvent.KeyRelease:
+            key = event.key()
+            if key in MapKeyFilter.KEYS_FOR_MAP:
+                self.parent().keyPressEvent(event)
+                return True
+        return False
+
+
+class MapWindow(QWidget, Ui_Form):
     def __init__(self):
         super().__init__()
 
-        uic.loadUi("form.ui", self)
+        self.setupUi(self)
         self.coordinates = [0, 0]
 
         # Инициализация UI
@@ -26,58 +49,79 @@ class MapWindow(QWidget):
 
     def initUI(self):
         self.button_show.clicked.connect(self.show_map)
+        self.lineEdit_cordinates.setText('0.0,0.0')
+        # Добавление элементов в combo box
+        self.combo_type.addItem("Схема")
+        self.combo_type.addItem("Спутник")
+        self.combo_type.addItem("Гибрид")
+
+        # Фильтр для событий, чтобы события нажатий стрелок вправо и влево не
+        # перехватывались только сторонними виджетами
+        self.installEventFilter(MapKeyFilter(self))
+
         self.setLayout(self.vlayout_main)
 
     def show_map(self):
-        # toponym_to_find = " ".join(self.lineEdit_cordinates.text())
-        #
-        # geocoder_params = {
-        #     "apikey": GEOCODER_API_KEY,
-        #     "geocode": toponym_to_find,
-        #     "format": "json"}
-        #
-        # response = requests.get(GEOCODER_API_SERVER, params=geocoder_params)
-        #
-        # if not response:
-        #     print('Все плохо')
-        #     self.massege_module.setText('Ничего не найдено')
-        #     exit(1)
-        #
-        # json_response = response.json()
-        # toponym = json_response["response"]["GeoObjectCollection"][
-        #     "featureMember"][0]["GeoObject"]
-        #
-        # span = caclulate_spn(toponym)
-        #
-        # # Координаты центра топонима:
-        # toponym_coodrinates = toponym["Point"]["pos"]
-        # # Долгота и широта:
-        # toponym_longitude, toponym_lattitude = toponym_coodrinates.split(" ")
-
-        self.coordinates = list(map(float, self.lineEdit_cordinates.text().replace(',', ' ').split()))
+        self.coordinates = list(map(float, self.lineEdit_cordinates.text().split(',')))
         if not self.coordinates:
-            self.lineEdit_cordinates.setText('0,0')
-            self.coordinates = list(map(float, self.lineEdit_cordinates.text().replace(',', ' ').split()))
+            self.lineEdit_cordinates.setText('0.0,0.0')
+            self.coordinates = [0, 0]
 
-        # Собираем параметры для запроса к StaticMapsAPI:
-        map_params = {
-            "ll": ','.join(map(str, self.coordinates)),
-            "spn": ','.join((str(DEFAULT_SCALE),) * 2),
-            "l": "map",
-            # 'pt': ",".join([toponym_longitude, toponym_lattitude]) + ',pm2rdl',
-        }
+        # Параметры для запроса к StaticMapsAPI
+        map_params = self.get_params_from_inputs()
 
-        map_api_server = "http://static-maps.yandex.ru/1.x/"
-        response = requests.get(map_api_server, params=map_params)
+        response = requests.get(MAP_API_SERVER, params=map_params)
+        if not response:
+            QMessageBox(QMessageBox.Warning,
+                        "ОШИБКА", str(response.status_code)).exec()
+            return
 
         data = BytesIO(response.content)
-
         pixmap = QPixmap.fromImage(ImageQt(Image.open(data)))
-
         self.pixmap_map.setPixmap(pixmap)
 
+    def get_params_from_inputs(self) -> dict:
+        """
+        Метод возвращает параметры для запроса на основании введённых данных,
+        если они корректные
+        """
+        # NOTE: Метод важен, т.к. от задачи к задаче функционал будет менятся,
+        # и чтобы не парится, всё будет тут (Никита)
+
+        '''
+        Этот код был намерено оставлен тут.
+
+        search_object = self.lineEdit_search.text()
+        # Параметры для поиска отличаются от параметров для геокодера и карт
+        if search_object:
+            params = {
+                "apikey": SEARCH_API_KEY,
+                "lang": "ru_RU",
+                "text": search_object,
+                "type": "geo",  # тип возвращаемого объекта - топоним
+            }
+        else:
+        '''
+
+        params = {
+            "ll": ','.join(map(str, self.coordinates)),
+            "spn": DEFAULT_SCALE,
+            "l": "map",
+        }
+
+        return params
+
+    def check_param(self, param: any):
+        if isinstance(param, float):
+            # TODO:
+            pass
+        elif isinstance(param, str):
+            # TODO: по факту просто проверка на пустоту, но вдруг что-то ещё нужно будет...
+            return bool(param.replace(' ', ''))
+
+        return False
+
     def keyPressEvent(self, event):
-        print(event.key(), Qt.Key_Up)
         if event.key() == Qt.Key_Up:
             self.coordinates[1] += DELTA_MOVE
         if event.key() == Qt.Key_Down:
@@ -86,7 +130,13 @@ class MapWindow(QWidget):
             self.coordinates[0] += DELTA_MOVE
         if event.key() == Qt.Key_Left:
             self.coordinates[0] -= DELTA_MOVE
-        self.lineEdit_cordinates.setText(', '.join(map(str, self.coordinates)))
+        if event.key() == Qt.Key_Enter:
+            self.coordinates = list(map(float, self.lineEdit_cordinates.text().split(',')))
+            if not self.coordinates:
+                self.lineEdit_cordinates.setText('0.0,0.0')
+                self.coordinates = [0, 0]
+
+        self.lineEdit_cordinates.setText(','.join(map(str, self.coordinates)))
         self.show_map()
 
 
