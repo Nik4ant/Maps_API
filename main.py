@@ -25,8 +25,7 @@ class MapKeyFilter(QObject):
     # NOTE: Здесь учитывается Enter с keypad!!
     # https://doc.qt.io/qt-5/qt.html#Key-enum (Qt::Key_Enter)
     # (P.s. было обноружено при тестах, но это не являеться багом)
-    KEYS_FOR_MAP = (Qt.Key_Right,  Qt.Key_Left, Qt.Key_Up, Qt.Key_Down,
-                    Qt.Key_Enter)
+    KEYS_FOR_MAP = (Qt.Key_Right, Qt.Key_Left, Qt.Key_Enter) # , Qt.Key_PageDown, Qt.Key_PageUp
 
     def eventFilter(self, object: 'QObject', event: 'QEvent') -> bool:
         if event.type() == QEvent.KeyRelease:
@@ -43,6 +42,7 @@ class MapWindow(QWidget, Ui_Form):
 
         self.setupUi(self)
         self.coordinates = [0, 0]
+        self.scale = DEFAULT_SCALE
 
         # Инициализация UI
         self.initUI()
@@ -50,10 +50,11 @@ class MapWindow(QWidget, Ui_Form):
     def initUI(self):
         self.button_show.clicked.connect(self.show_map)
         self.lineEdit_cordinates.setText('0.0,0.0')
+        self.lineEdit_scale.setText(str(self.scale))
         # Добавление элементов в combo box
-        self.combo_type.addItem("Схема")
-        self.combo_type.addItem("Спутник")
-        self.combo_type.addItem("Гибрид")
+        # self.combo_type.addItem("Схема")
+        # self.combo_type.addItem("Спутник")
+        # self.combo_type.addItem("Гибрид")
 
         # Фильтр для событий, чтобы события нажатий стрелок вправо и влево не
         # перехватывались только сторонними виджетами
@@ -67,13 +68,21 @@ class MapWindow(QWidget, Ui_Form):
             self.lineEdit_cordinates.setText('0.0,0.0')
             self.coordinates = [0, 0]
 
+        self.scale = int(self.lineEdit_scale.text())
+
         # Параметры для запроса к StaticMapsAPI
         map_params = self.get_params_from_inputs()
 
         response = requests.get(MAP_API_SERVER, params=map_params)
         if not response:
-            QMessageBox(QMessageBox.Warning,
-                        "ОШИБКА", str(response.status_code)).exec()
+            messege = QMessageBox(QMessageBox.Warning,
+                                  "ОШИБКА", f'''Невозможно отобразить участок карты с параметрами:
+Координаты - {self.coordinates}
+Масштаб - {self.scale}
+
+Ошибка: ''' + str(response.status_code))
+            messege.resize(300, 150)
+            messege.exec()
             return
 
         data = BytesIO(response.content)
@@ -105,7 +114,8 @@ class MapWindow(QWidget, Ui_Form):
 
         params = {
             "ll": ','.join(map(str, self.coordinates)),
-            "spn": DEFAULT_SCALE,
+            # "z": ','.join((str(self.scale), str(self.scale))),
+            "z": str(self.scale),
             "l": "map",
         }
 
@@ -122,21 +132,32 @@ class MapWindow(QWidget, Ui_Form):
         return False
 
     def keyPressEvent(self, event):
+        move = DELTA_MOVE * 2 ** (7 - self.scale)
         if event.key() == Qt.Key_Up:
-            self.coordinates[1] += DELTA_MOVE
-        if event.key() == Qt.Key_Down:
-            self.coordinates[1] -= DELTA_MOVE
-        if event.key() == Qt.Key_Right:
-            self.coordinates[0] += DELTA_MOVE
-        if event.key() == Qt.Key_Left:
-            self.coordinates[0] -= DELTA_MOVE
-        if event.key() == Qt.Key_Enter:
+            self.coordinates[1] = round(self.coordinates[1] + move, 5)
+        elif event.key() == Qt.Key_Down:
+            self.coordinates[1] = round(self.coordinates[1] - move, 5)
+        elif event.key() == Qt.Key_Right:
+            self.coordinates[0] = round(self.coordinates[0] + move, 5)
+        elif event.key() == Qt.Key_Left:
+            self.coordinates[0] = round(self.coordinates[0] - move, 5)
+
+        elif event.key() == Qt.Key_Enter:
             self.coordinates = list(map(float, self.lineEdit_cordinates.text().split(',')))
             if not self.coordinates:
                 self.lineEdit_cordinates.setText('0.0,0.0')
                 self.coordinates = [0, 0]
+            self.scale = int(self.lineEdit_scale.text())
+        elif event.key() == Qt.Key_PageDown:
+            self.scale += DELTA_SCALE
+        elif event.key() == Qt.Key_PageUp:
+            self.scale -= DELTA_SCALE
+        else:
+            return
 
+        self.scale = max(min(self.scale, 17), 0)
         self.lineEdit_cordinates.setText(','.join(map(str, self.coordinates)))
+        self.lineEdit_scale.setText(str(self.scale))
         self.show_map()
 
 
