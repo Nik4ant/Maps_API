@@ -25,7 +25,7 @@ class MapKeyFilter(QObject):
     # NOTE: Здесь учитывается Enter с keypad!!
     # https://doc.qt.io/qt-5/qt.html#Key-enum (Qt::Key_Enter)
     # (P.s. было обноружено при тестах, но это не являеться багом)
-    KEYS_FOR_MAP = (Qt.Key_Right, Qt.Key_Left, Qt.Key_Enter) # , Qt.Key_PageDown, Qt.Key_PageUp
+    KEYS_FOR_MAP = (Qt.Key_Right, Qt.Key_Left) # , Qt.Key_PageDown, Qt.Key_PageUp
 
     def eventFilter(self, object: 'QObject', event: 'QEvent') -> bool:
         if event.type() == QEvent.KeyRelease:
@@ -114,7 +114,7 @@ class MapWindow(QWidget, Ui_Form):
 
         params = {
             "ll": ','.join(map(str, self.coordinates)),
-            # "z": ','.join((str(self.scale), str(self.scale))),
+            # "spn": ','.join((str(self.scale), str(self.scale))),
             "z": str(self.scale),
             "l": "map",
         }
@@ -132,6 +132,7 @@ class MapWindow(QWidget, Ui_Form):
         return False
 
     def keyPressEvent(self, event):
+        print(event.key(), Qt.Key_Enter)
         move = DELTA_MOVE * 2 ** (7 - self.scale)
         if event.key() == Qt.Key_Up:
             self.coordinates[1] = round(self.coordinates[1] + move, 5)
@@ -142,12 +143,13 @@ class MapWindow(QWidget, Ui_Form):
         elif event.key() == Qt.Key_Left:
             self.coordinates[0] = round(self.coordinates[0] - move, 5)
 
-        elif event.key() == Qt.Key_Enter:
+        elif event.key() in (Qt.Key_Enter, Qt.Key_Enter - 1):
             self.coordinates = list(map(float, self.lineEdit_cordinates.text().split(',')))
             if not self.coordinates:
                 self.lineEdit_cordinates.setText('0.0,0.0')
                 self.coordinates = [0, 0]
             self.scale = int(self.lineEdit_scale.text())
+
         elif event.key() == Qt.Key_PageDown:
             self.scale += DELTA_SCALE
         elif event.key() == Qt.Key_PageUp:
