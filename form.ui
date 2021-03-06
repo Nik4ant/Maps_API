@@ -17,13 +17,32 @@
    <item>
     <layout class="QVBoxLayout" name="vlayout_main">
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QHBoxLayout" name="hlayout_top">
        <item>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <layout class="QVBoxLayout" name="vlayout_inputs">
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <layout class="QHBoxLayout" name="horizontalLayout">
            <item>
-            <widget class="QLabel" name="label_cordinates_2">
+            <widget class="QLabel" name="label_search">
+             <property name="font">
+              <font>
+               <pointsize>11</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>Запрос (второстепенно):</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEdit_search"/>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="hlayout_cordinates">
+           <item>
+            <widget class="QLabel" name="label_cordinates">
              <property name="font">
               <font>
                <pointsize>11</pointsize>
@@ -46,7 +65,7 @@
           </layout>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <layout class="QHBoxLayout" name="hlayout_scale">
            <item>
             <widget class="QLabel" name="label_scale">
              <property name="font">
@@ -91,15 +110,12 @@
          </property>
         </widget>
        </item>
-       <item>
-        <layout class="QVBoxLayout" name="verticalLayout_4"/>
-       </item>
       </layout>
      </item>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout">
+      <layout class="QVBoxLayout" name="vlayout_bottom">
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <layout class="QHBoxLayout" name="hlayout_map">
          <item>
           <widget class="QLabel" name="pixmap_map">
            <property name="text">

@@ -10,11 +10,5 @@ def calculate_spn(toponym: dict) -> str:
     return result
 
 
-def get_toponym_by_json(json: dict, index=0) -> dict:
-    """Функция возвращает топоним из геокодера по индексу (по умолчанию: 0)"""
-    return json["response"]["GeoObjectCollection"]["featureMember"][
-        index]["GeoObject"]
-
-
-def get_toponym_center_pos(toponym: dict) -> tuple:
-    return toponym["Point"]["pos"]
+def get_toponym_center_pos(json: dict) -> tuple:
+    return json["features"][0]["geometry"]["coordinates"]

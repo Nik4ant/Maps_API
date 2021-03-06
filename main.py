@@ -34,7 +34,7 @@ class MapWindow(QWidget, Ui_Form):
     def __init__(self):
         super().__init__()
 
-        self.coordinates = [40.0, 52.0]
+        self.cordinates = [40.0, 52.0]
         self.scale = DEFAULT_SCALE
         self.map_view = 'map'
 
@@ -49,12 +49,13 @@ class MapWindow(QWidget, Ui_Form):
         self.btn_view = QPushButton(self)
         self.btn_view.setIcon(QIcon(QPixmap('layers.png')))
         self.btn_view.setFixedSize(35, 35)
+
         indent = 15
         self.btn_view.move(indent, self.height() - self.btn_view.height() - indent)
         self.btn_view.clicked.connect(self.change_map_view)
 
         self.button_show.clicked.connect(self.show_map)
-        self.lineEdit_cordinates.setText(','.join(map(str, self.coordinates)))
+        self.lineEdit_cordinates.setText(','.join(map(str, self.cordinates)))
         self.lineEdit_scale.setText(str(self.scale))
 
         # Фильтр для событий, чтобы события нажатий стрелок вправо и влево не
@@ -65,15 +66,15 @@ class MapWindow(QWidget, Ui_Form):
 
     def show_map(self):
         # Координаты
-        old_coordinates = self.coordinates
+        old_cordinates = self.cordinates
         cordinates = self.lineEdit_cordinates.text().split(',')
         if (not self.check_param(cordinates[0], float) or
                 not self.check_param(cordinates[-1], float)):
             self.show_error_message("Некорректные координаты")
-            self.lineEdit_cordinates.setText(','.join(map(str, old_coordinates)))
+            self.lineEdit_cordinates.setText(','.join(map(str, old_cordinates)))
             return
         else:
-            self.coordinates = list(map(float, cordinates))
+            self.cordinates = list(map(float, cordinates))
 
         # Масштаб
         old_scale = self.scale
@@ -84,12 +85,35 @@ class MapWindow(QWidget, Ui_Form):
             return
         self.scale = int(scale)
 
-        # Параметры для запроса к StaticMapsAPI
-        map_params = self.get_params_from_inputs()
+        # Дополнительные параметры к карте, либо их замена при запросе к поиску
+        extra_map_params = dict()
+        # Если нужен поиск, то делается дополнительный запрос к Search API
+        if self.check_param(self.lineEdit_search.text(), str):
+            seacrh_response = requests.get(SEARCH_API_SERVER,
+                                           params=self.get_seacrh_params())
+            if not seacrh_response:
+                self.show_error_message("кривой запрос к поиску: " +
+                                        str(seacrh_response.status_code))
+                return
+            # Позиция для метки (по условию в центре)
+            try:
+                mark_position = get_toponym_center_pos(seacrh_response.json())
+            # На случай, если ничего не будет найдено
+            except IndexError as e:
+                self.show_error_message("кривой запрос к поиску: " +
+                                        str(seacrh_response.status_code))
+            # Дополнительные/новые параметры
+            extra_map_params = {
+                "pt": f"{mark_position[0]},{mark_position[1]},pm2blm",
+                "ll": f"{mark_position[0]},{mark_position[1]}",
+            }
 
+        # Параметры для запроса к StaticMapsAPI
+        map_params = self.get_map_params()
+        map_params.update(extra_map_params)
         response = requests.get(MAP_API_SERVER, params=map_params)
         if not response:
-            self.show_error_message(f"http: {response.status_code}")
+            self.show_error_message(f"кривой запрос к картам {response.content}")
             return
 
         pixmap = QPixmap()
@@ -112,14 +136,24 @@ class MapWindow(QWidget, Ui_Form):
         messege.resize(300, 150)
         messege.exec()
 
-    def get_params_from_inputs(self) -> dict:
+    def get_seacrh_params(self) -> dict:
+        params = {
+            "apikey": SEARCH_API_KEY,
+            "lang": "ru_RU",
+            "text": self.lineEdit_search.text(),
+            "results": 1,
+            "type": "geo",  # тип возвращаемого объекта - топоним
+        }
+
+        return params
+
+    def get_map_params(self) -> dict:
         """
-        Метод возвращает параметры для запроса на основании введённых данных,
-        если они корректные
+        Метод возвращает параметры для запроса на основании введённых данных
         """
 
         params = {
-            "ll": ','.join(map(str, self.coordinates)),
+            "ll": ','.join(map(str, self.cordinates)),
             "z": str(self.scale),
             "l": self.map_view,
         }
@@ -134,17 +168,20 @@ class MapWindow(QWidget, Ui_Form):
         elif supposed_type == int:
             return not any(char not in "-1234567890" for char in param)
         elif supposed_type == str:
-            return not param.isspace()
+            return bool(param.replace(' ', ''))
 
         return False
 
     def wheelEvent(self, event: QWheelEvent) -> None:
-        if event.angleDelta().y() == 120:
+        # Изменение размера
+        if event.angleDelta().y() >= 120:
             self.scale += 1
         else:
             self.scale -= 1
         self.scale = max(0, min(17, self.scale))
         self.lineEdit_scale.setText(str(self.scale))
+
+        # Обновление карты
         self.show_map()
 
     def keyPressEvent(self, event):
@@ -153,13 +190,13 @@ class MapWindow(QWidget, Ui_Form):
 
         # Проверка на движение
         if key == Qt.Key_Up:
-            self.coordinates[1] = round(self.coordinates[1] + move, ndigits=5)
+            self.cordinates[1] = round(self.cordinates[1] + move, ndigits=5)
         elif key == Qt.Key_Down:
-            self.coordinates[1] = round(self.coordinates[1] - move, ndigits=5)
+            self.cordinates[1] = round(self.cordinates[1] - move, ndigits=5)
         elif key == Qt.Key_Right:
-            self.coordinates[0] = round(self.coordinates[0] + move, ndigits=5)
+            self.cordinates[0] = round(self.cordinates[0] + move, ndigits=5)
         elif key == Qt.Key_Left:
-            self.coordinates[0] = round(self.coordinates[0] - move, ndigits=5)
+            self.cordinates[0] = round(self.cordinates[0] - move, ndigits=5)
 
         # Такая проверка нужна для учёта двух enter'ов на клавиатуре
         elif key in (Qt.Key_Enter, Qt.Key_Return):
@@ -174,7 +211,7 @@ class MapWindow(QWidget, Ui_Form):
             return
 
         self.scale = max(min(self.scale, 17), 0)
-        self.lineEdit_cordinates.setText(','.join(map(str, self.coordinates)))
+        self.lineEdit_cordinates.setText(','.join(map(str, self.cordinates)))
         self.lineEdit_scale.setText(str(self.scale))
         self.show_map()
 
