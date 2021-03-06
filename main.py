@@ -24,7 +24,7 @@ class MapKeyFilter(QObject):
 
     KEYS_FOR_MAP = (Qt.Key_Right, Qt.Key_Left)
 
-    def eventFilter(self, object: 'QObject', event: 'QEvent') -> bool:
+    def eventFilter(self, obj: 'QObject', event: 'QEvent') -> bool:
         if event.type() == QEvent.KeyRelease:
             key = event.key()
             if key in MapKeyFilter.KEYS_FOR_MAP:
@@ -37,16 +37,27 @@ class MapWindow(QWidget, Ui_Form):
     def __init__(self):
         super().__init__()
 
-        self.setupUi(self)
-        self.coordinates = [0, 0]
+        self.coordinates = [40.0, 52.0]
         self.scale = DEFAULT_SCALE
+        self.map_view = 'map'
 
         # Инициализация UI
+        self.setupUi(self)
+        # pyuic5 form.ui
         self.initUI()
+        self.show_map()
 
     def initUI(self):
+        # "Руками" создадим кнопку, которая будет располагаться не в лайаотах, а просто над всем
+        self.btn_view = QPushButton(self)
+        self.btn_view.setIcon(QIcon(QPixmap('layers.png')))
+        self.btn_view.setFixedSize(35, 35)
+        indent = 15
+        self.btn_view.move(indent, self.height() - self.btn_view.height() - indent)
+        self.btn_view.clicked.connect(self.change_map_view)
+
         self.button_show.clicked.connect(self.show_map)
-        self.lineEdit_cordinates.setText('0.0,0.0')
+        self.lineEdit_cordinates.setText(','.join(map(str, self.coordinates)))
         self.lineEdit_scale.setText(str(self.scale))
 
         # Фильтр для событий, чтобы события нажатий стрелок вправо и влево не
@@ -85,16 +96,16 @@ class MapWindow(QWidget, Ui_Form):
         pixmap = QPixmap.fromImage(ImageQt(Image.open(data)))
         self.pixmap_map.setPixmap(pixmap)
 
-    def show_error_message(self, error_text: str):
+    def show_error_message(self, error: str):
         error_text = f'''
 Невозможно отобразить участок карты с параметрами:
 Координаты - {self.lineEdit_cordinates.text()}
 Масштаб - {self.lineEdit_scale.text()}\n
-Ошибка: {error_text}
+Ошибка: {error}
 '''
 
         messege = QMessageBox(QMessageBox.Warning,
-                              "ОШИБКА", error_text)
+                              "ОШИБКА", error_text.strip())
         messege.resize(300, 150)
         messege.exec()
 
@@ -124,7 +135,7 @@ class MapWindow(QWidget, Ui_Form):
         params = {
             "ll": ','.join(map(str, self.coordinates)),
             "z": str(self.scale),
-            "l": "map",
+            "l": self.map_view,
         }
 
         return params
@@ -174,6 +185,14 @@ class MapWindow(QWidget, Ui_Form):
         self.lineEdit_cordinates.setText(','.join(map(str, self.coordinates)))
         self.lineEdit_scale.setText(str(self.scale))
         self.show_map()
+
+    def change_map_view(self):
+        print('Вызывается')
+        views = ['map', 'sat', 'sat,skl']
+        self.map_view = views[(views.index(self.map_view) + 1) % len(views)]
+        print('Сменяется')
+        self.show_map()
+        print('Показывается')
 
 
 if __name__ == '__main__':

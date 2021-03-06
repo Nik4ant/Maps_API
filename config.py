@@ -1,6 +1,6 @@
 DELTA_MOVE = 0.5
 DELTA_SCALE = 1
-DEFAULT_SCALE = 10
+DEFAULT_SCALE = 3
 
 MAP_API_SERVER = "http://static-maps.yandex.ru/1.x/"
 
