@@ -1,5 +1,4 @@
 import sys
-from io import BytesIO
 
 from engine import *
 from config import *
@@ -10,8 +9,6 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 import requests
-from PIL import Image
-from PIL.ImageQt import ImageQt
 
 
 class MapKeyFilter(QObject):
@@ -24,7 +21,7 @@ class MapKeyFilter(QObject):
 
     KEYS_FOR_MAP = (Qt.Key_Right, Qt.Key_Left)
 
-    def eventFilter(self, object: 'QObject', event: 'QEvent') -> bool:
+    def eventFilter(self, obj: 'QObject', event: 'QEvent') -> bool:
         if event.type() == QEvent.KeyRelease:
             key = event.key()
             if key in MapKeyFilter.KEYS_FOR_MAP:
@@ -37,21 +34,28 @@ class MapWindow(QWidget, Ui_Form):
     def __init__(self):
         super().__init__()
 
-        self.setupUi(self)
-        self.coordinates = [0, 0]
+        self.coordinates = [40.0, 52.0]
         self.scale = DEFAULT_SCALE
+        self.map_view = 'map'
 
         # Инициализация UI
+        self.setupUi(self)
+        # pyuic5 form.ui
         self.initUI()
+        self.show_map()
 
     def initUI(self):
-        self.button_show.clicked.connect(self.show_map)
-        self.lineEdit_cordinates.setText('0.0,0.0')
-        self.lineEdit_scale.setText(str(self.scale))
+        # "Руками" создадим кнопку, которая будет располагаться не в лайаотах, а просто над всем
+        self.btn_view = QPushButton(self)
+        self.btn_view.setIcon(QIcon(QPixmap('layers.png')))
+        self.btn_view.setFixedSize(35, 35)
+        indent = 15
+        self.btn_view.move(indent, self.height() - self.btn_view.height() - indent)
+        self.btn_view.clicked.connect(self.change_map_view)
 
-        self.combo_type.addItem("Схема")
-        self.combo_type.addItem("Спутник")
-        self.combo_type.addItem("Гибрид")
+        self.button_show.clicked.connect(self.show_map)
+        self.lineEdit_cordinates.setText(','.join(map(str, self.coordinates)))
+        self.lineEdit_scale.setText(str(self.scale))
 
         # Фильтр для событий, чтобы события нажатий стрелок вправо и влево не
         # перехватывались только сторонними виджетами
@@ -61,19 +65,22 @@ class MapWindow(QWidget, Ui_Form):
 
     def show_map(self):
         # Координаты
+        old_coordinates = self.coordinates
         cordinates = self.lineEdit_cordinates.text().split(',')
         if (not self.check_param(cordinates[0], float) or
                 not self.check_param(cordinates[-1], float)):
-            self.lineEdit_cordinates.setText('0.0,0.0')
             self.show_error_message("Некорректные координаты")
+            self.lineEdit_cordinates.setText(','.join(map(str, old_coordinates)))
             return
-        self.coordinates = list(map(float, cordinates))
+        else:
+            self.coordinates = list(map(float, cordinates))
 
         # Масштаб
+        old_scale = self.scale
         scale = self.lineEdit_scale.text()
-        if not self.check_param(scale, int):
-            self.lineEdit_scale.setText(str(DEFAULT_SCALE))
+        if not self.check_param(scale, int) or 0 > int(scale) or int(scale) > 17:
             self.show_error_message("Некорректный масштаб")
+            self.lineEdit_scale.setText(str(old_scale))
             return
         self.scale = int(scale)
 
@@ -87,57 +94,61 @@ class MapWindow(QWidget, Ui_Form):
 
         pixmap = QPixmap()
         pixmap.loadFromData(response.content)
+
         self.pixmap_map.setPixmap(pixmap)
 
-    def show_error_message(self, error_text: str):
+    def show_error_message(self, error: str):
         error_text = f'''
 Невозможно отобразить участок карты с параметрами:
 Координаты - {self.lineEdit_cordinates.text()}
 Масштаб - {self.lineEdit_scale.text()}
-Тип - {self.combo_type.currentText()}\n
-Ошибка: {error_text}
+Тип - {self.map_view}
+
+Ошибка: {error}
 '''
 
         messege = QMessageBox(QMessageBox.Warning,
-                              "ОШИБКА", error_text)
+                              "ОШИБКА", error_text.strip())
         messege.resize(300, 150)
         messege.exec()
 
     def get_params_from_inputs(self) -> dict:
         """
-        Метод возвращает параметры для запроса на основании введённых данных
+        Метод возвращает параметры для запроса на основании введённых данных,
+        если они корректные
         """
-
-        # Тип карты
-        current = self.combo_type.currentText().lower()
-        if current == "схема":
-            map_type = "map"
-        elif current == "спутник":
-            map_type = "sat"
-        else:
-            map_type = "sat,skl"
 
         params = {
             "ll": ','.join(map(str, self.coordinates)),
             "z": str(self.scale),
-            "l": map_type,
+            "l": self.map_view,
         }
 
         return params
 
-    def check_param(self, param: any, supposed_type: type):
+    @staticmethod
+    def check_param(param: any, supposed_type: type):
         """Метод по проверке корректности параметра"""
         if supposed_type == float:
             return not any(char not in "-1234567890." for char in param)
         elif supposed_type == int:
             return not any(char not in "-1234567890" for char in param)
         elif supposed_type == str:
-            return bool(param.replace(' ', ''))
+            return not param.isspace()
 
         return False
 
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        if event.angleDelta().y() == 120:
+            self.scale += 1
+        else:
+            self.scale -= 1
+        self.scale = max(0, min(17, self.scale))
+        self.lineEdit_scale.setText(str(self.scale))
+        self.show_map()
+
     def keyPressEvent(self, event):
-        move = DELTA_MOVE * 2 ** (7 - self.scale)
+        move = 2 ** (DELTA_MOVE - self.scale)
         key = event.key()
 
         # Проверка на движение
@@ -151,12 +162,8 @@ class MapWindow(QWidget, Ui_Form):
             self.coordinates[0] = round(self.coordinates[0] - move, ndigits=5)
 
         # Такая проверка нужна для учёта двух enter'ов на клавиатуре
-        elif key in (Qt.Key_Enter, Qt.Key_Enter - 1):
-            self.coordinates = list(map(float, self.lineEdit_cordinates.text().split(',')))
-            if not self.coordinates:
-                self.lineEdit_cordinates.setText('0.0,0.0')
-                self.coordinates = [0, 0]
-            self.scale = int(self.lineEdit_scale.text())
+        elif key in (Qt.Key_Enter, Qt.Key_Return):
+            self.show_map()
 
         # Проверка на изменение масштаба
         elif key == Qt.Key_PageDown:
@@ -171,9 +178,14 @@ class MapWindow(QWidget, Ui_Form):
         self.lineEdit_scale.setText(str(self.scale))
         self.show_map()
 
+    def change_map_view(self):
+        views = ['map', 'sat', 'sat,skl']
+        self.map_view = views[(views.index(self.map_view) + 1) % len(views)]
+        self.show_map()
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     win = MapWindow()
     win.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
