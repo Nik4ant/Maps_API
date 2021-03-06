@@ -1,3 +1,4 @@
+import os
 import sys
 from io import BytesIO
 
@@ -92,8 +93,9 @@ class MapWindow(QWidget, Ui_Form):
             self.show_error_message(f"http: {response.status_code}")
             return
 
-        data = BytesIO(response.content)
-        pixmap = QPixmap.fromImage(ImageQt(Image.open(data)))
+        pixmap = QPixmap()
+        pixmap.loadFromData(response.content)
+
         self.pixmap_map.setPixmap(pixmap)
 
     def show_error_message(self, error: str):
@@ -118,8 +120,7 @@ class MapWindow(QWidget, Ui_Form):
         # и чтобы не парится, всё будет тут (Никита)
 
         '''
-        Этот код был намерено оставлен тут.
-
+         # Этот код был намерено оставлен тут.
         search_object = self.lineEdit_search.text()
         # Параметры для поиска отличаются от параметров для геокодера и карт
         if search_object:
@@ -147,7 +148,7 @@ class MapWindow(QWidget, Ui_Form):
         elif supposed_type == int:
             return not any(char not in "-1234567890" for char in param)
         elif supposed_type == str:
-            return bool(param.replace(' ', ''))
+            return not param.isspace()
 
         return False
 
