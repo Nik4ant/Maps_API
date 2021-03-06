@@ -1,4 +1,3 @@
-import os
 import sys
 from io import BytesIO
 
@@ -25,7 +24,7 @@ class MapKeyFilter(QObject):
 
     KEYS_FOR_MAP = (Qt.Key_Right, Qt.Key_Left)
 
-    def eventFilter(self, obj: 'QObject', event: 'QEvent') -> bool:
+    def eventFilter(self, object: 'QObject', event: 'QEvent') -> bool:
         if event.type() == QEvent.KeyRelease:
             key = event.key()
             if key in MapKeyFilter.KEYS_FOR_MAP:
@@ -38,28 +37,21 @@ class MapWindow(QWidget, Ui_Form):
     def __init__(self):
         super().__init__()
 
-        self.coordinates = [40.0, 52.0]
+        self.setupUi(self)
+        self.coordinates = [0, 0]
         self.scale = DEFAULT_SCALE
-        self.map_view = 'map'
 
         # Инициализация UI
-        self.setupUi(self)
-        # pyuic5 form.ui
         self.initUI()
-        self.show_map()
 
     def initUI(self):
-        # "Руками" создадим кнопку, которая будет располагаться не в лайаотах, а просто над всем
-        self.btn_view = QPushButton(self)
-        self.btn_view.setIcon(QIcon(QPixmap('layers.png')))
-        self.btn_view.setFixedSize(35, 35)
-        indent = 15
-        self.btn_view.move(indent, self.height() - self.btn_view.height() - indent)
-        self.btn_view.clicked.connect(self.change_map_view)
-
         self.button_show.clicked.connect(self.show_map)
-        self.lineEdit_cordinates.setText(','.join(map(str, self.coordinates)))
+        self.lineEdit_cordinates.setText('0.0,0.0')
         self.lineEdit_scale.setText(str(self.scale))
+
+        self.combo_type.addItem("Схема")
+        self.combo_type.addItem("Спутник")
+        self.combo_type.addItem("Гибрид")
 
         # Фильтр для событий, чтобы события нажатий стрелок вправо и влево не
         # перехватывались только сторонними виджетами
@@ -95,48 +87,40 @@ class MapWindow(QWidget, Ui_Form):
 
         pixmap = QPixmap()
         pixmap.loadFromData(response.content)
-
         self.pixmap_map.setPixmap(pixmap)
 
-    def show_error_message(self, error: str):
+    def show_error_message(self, error_text: str):
         error_text = f'''
 Невозможно отобразить участок карты с параметрами:
 Координаты - {self.lineEdit_cordinates.text()}
-Масштаб - {self.lineEdit_scale.text()}\n
-Ошибка: {error}
+Масштаб - {self.lineEdit_scale.text()}
+Тип - {self.combo_type.currentText()}\n
+Ошибка: {error_text}
 '''
 
         messege = QMessageBox(QMessageBox.Warning,
-                              "ОШИБКА", error_text.strip())
+                              "ОШИБКА", error_text)
         messege.resize(300, 150)
         messege.exec()
 
     def get_params_from_inputs(self) -> dict:
         """
-        Метод возвращает параметры для запроса на основании введённых данных,
-        если они корректные
+        Метод возвращает параметры для запроса на основании введённых данных
         """
-        # NOTE: Метод важен, т.к. от задачи к задаче функционал будет менятся,
-        # и чтобы не парится, всё будет тут (Никита)
 
-        '''
-         # Этот код был намерено оставлен тут.
-        search_object = self.lineEdit_search.text()
-        # Параметры для поиска отличаются от параметров для геокодера и карт
-        if search_object:
-            params = {
-                "apikey": SEARCH_API_KEY,
-                "lang": "ru_RU",
-                "text": search_object,
-                "type": "geo",  # тип возвращаемого объекта - топоним
-            }
+        # Тип карты
+        current = self.combo_type.currentText().lower()
+        if current == "схема":
+            map_type = "map"
+        elif current == "спутник":
+            map_type = "sat"
         else:
-        '''
+            map_type = "sat,skl"
 
         params = {
             "ll": ','.join(map(str, self.coordinates)),
             "z": str(self.scale),
-            "l": self.map_view,
+            "l": map_type,
         }
 
         return params
@@ -148,7 +132,7 @@ class MapWindow(QWidget, Ui_Form):
         elif supposed_type == int:
             return not any(char not in "-1234567890" for char in param)
         elif supposed_type == str:
-            return not param.isspace()
+            return bool(param.replace(' ', ''))
 
         return False
 
@@ -186,14 +170,6 @@ class MapWindow(QWidget, Ui_Form):
         self.lineEdit_cordinates.setText(','.join(map(str, self.coordinates)))
         self.lineEdit_scale.setText(str(self.scale))
         self.show_map()
-
-    def change_map_view(self):
-        print('Вызывается')
-        views = ['map', 'sat', 'sat,skl']
-        self.map_view = views[(views.index(self.map_view) + 1) % len(views)]
-        print('Сменяется')
-        self.show_map()
-        print('Показывается')
 
 
 if __name__ == '__main__':
