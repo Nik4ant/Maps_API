@@ -113,17 +113,9 @@ class MapWindow(QWidget, Ui_Form):
                 "ll": f"{self.mark_position[0]},{self.mark_position[1]}",
             }
 
-            # Установка адресса
-            # (нужен отдельно, т.к. только он учитывает почтовый индекс отдельно)
+            # Установка адресса с помощью запроса
             address = get_geo_object(geocoder_json)["metaDataProperty"]["GeocoderMetaData"]["Address"]
             address_text = address["formatted"]
-            # Если нужен почтовый индекс, то добавляем и его
-            if self.checkBox_post_office.isChecked():
-                try:
-                    address_text += ", " + address["postal_code"]
-                except KeyError as e:
-                    # Т.к. код не всегда есть, например если искать старну или город
-                    self.show_error_message("У найденного объекта нет почтового кода")
             self.label_adress.setText(f"Адрес: {address_text}")
 
             self.lineEdit_cordinates.setText(f"{self.mark_position[0]},{self.mark_position[1]}")
