@@ -236,6 +236,7 @@ class MapWindow(QWidget, Ui_Form):
         self.show_map()
 
     def clean_search(self):
+        self.lineEdit_search.clear()
         self.mark_position = None
         self.show_map()
 
