@@ -35,6 +35,7 @@ class MapWindow(QWidget, Ui_Form):
         super().__init__()
 
         self.cordinates = [40.0, 52.0]
+        self.mark_position = None
         self.scale = DEFAULT_SCALE
         self.map_view = 'map'
 
@@ -50,10 +51,7 @@ class MapWindow(QWidget, Ui_Form):
         self.btn_view.setIcon(QIcon(QPixmap('layers.png')))
         self.btn_view.setFixedSize(35, 35)
 
-        indent = 15
-        self.btn_view.move(indent, self.height() - self.btn_view.height() - indent)
         self.btn_view.clicked.connect(self.change_map_view)
-
         self.button_show.clicked.connect(self.show_map)
         self.lineEdit_cordinates.setText(','.join(map(str, self.cordinates)))
         self.lineEdit_scale.setText(str(self.scale))
@@ -63,6 +61,10 @@ class MapWindow(QWidget, Ui_Form):
         self.installEventFilter(MapKeyFilter(self))
 
         self.setLayout(self.vlayout_main)
+
+    def paintEvent(self, event):
+        indent = 15
+        self.btn_view.move(indent, self.minimumHeight() - self.btn_view.height() - indent)
 
     def show_map(self):
         # Координаты
@@ -97,15 +99,25 @@ class MapWindow(QWidget, Ui_Form):
                 return
             # Позиция для метки (по условию в центре)
             try:
-                mark_position = get_toponym_center_pos(seacrh_response.json())
+                self.mark_position = get_toponym_center_pos(seacrh_response.json())
             # На случай, если ничего не будет найдено
-            except IndexError as e:
+            except IndexError:
                 self.show_error_message("кривой запрос к поиску: " +
                                         str(seacrh_response.status_code))
+                return
+
             # Дополнительные/новые параметры
             extra_map_params = {
-                "pt": f"{mark_position[0]},{mark_position[1]},pm2blm",
-                "ll": f"{mark_position[0]},{mark_position[1]}",
+                "pt": f"{self.mark_position[0]},{self.mark_position[1]},pm2blm",
+                "ll": f"{self.mark_position[0]},{self.mark_position[1]}",
+            }
+
+            self.lineEdit_cordinates.setText(','.join(map(str, self.mark_position)))
+            self.lineEdit_search.setText('')
+
+        elif self.mark_position:
+            extra_map_params = {
+                "pt": f"{self.mark_position[0]},{self.mark_position[1]},pm2blm",
             }
 
         # Параметры для запроса к StaticMapsAPI
@@ -201,6 +213,7 @@ class MapWindow(QWidget, Ui_Form):
         # Такая проверка нужна для учёта двух enter'ов на клавиатуре
         elif key in (Qt.Key_Enter, Qt.Key_Return):
             self.show_map()
+            return
 
         # Проверка на изменение масштаба
         elif key == Qt.Key_PageDown:
