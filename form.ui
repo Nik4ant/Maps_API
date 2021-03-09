@@ -21,45 +21,77 @@
        <item>
         <layout class="QVBoxLayout" name="vlayout_inputs">
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout">
+          <layout class="QVBoxLayout" name="vlayout_search">
            <item>
-            <widget class="QLabel" name="label_search">
-             <property name="font">
-              <font>
-               <pointsize>11</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>Запрос: </string>
-             </property>
-            </widget>
+            <layout class="QHBoxLayout" name="hlayout_search">
+             <item>
+              <widget class="QLabel" name="label_search">
+               <property name="font">
+                <font>
+                 <pointsize>11</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Запрос: </string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="lineEdit_search"/>
+             </item>
+             <item>
+              <widget class="QPushButton" name="button_clean">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>25</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Segoe UI Semibold</family>
+                 <pointsize>9</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Сброс</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
            <item>
-            <widget class="QLineEdit" name="lineEdit_search"/>
-           </item>
-           <item>
-            <widget class="QPushButton" name="button_clean">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>25</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <family>Segoe UI Semibold</family>
-               <pointsize>9</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>Сброс</string>
-             </property>
-            </widget>
+            <layout class="QVBoxLayout" name="vlayout_address">
+             <item>
+              <widget class="QCheckBox" name="checkBox_post_office">
+               <property name="font">
+                <font>
+                 <pointsize>11</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Использовать почтовый индекс?</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_adress">
+               <property name="font">
+                <font>
+                 <pointsize>11</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Адрес: </string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="hlayout_scale">
+          <layout class="QHBoxLayout" name="hlayout_main_inputs">
            <property name="spacing">
             <number>0</number>
            </property>
@@ -104,7 +136,7 @@
             </layout>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <layout class="QHBoxLayout" name="hlayout_scale">
              <item>
               <widget class="QLabel" name="label_scale">
                <property name="font">

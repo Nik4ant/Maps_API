@@ -10,5 +10,9 @@ def calculate_spn(toponym: dict) -> str:
     return result
 
 
-def get_toponym_center_pos(json: dict) -> tuple:
-    return json["features"][0]["geometry"]["coordinates"]
+def get_center_pos(json: dict) -> tuple:
+    return tuple(map(float, get_geo_object(json)["Point"]["pos"].split()))
+
+
+def get_geo_object(json):
+    return json['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']

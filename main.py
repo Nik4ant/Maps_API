@@ -1,14 +1,13 @@
 import sys
 
-from engine import *
-from config import *
-from form import Ui_Form
-
-from PyQt5.QtWidgets import *
+import requests
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
-import requests
+from config import *
+from engine import *
+from form import Ui_Form
 
 
 class MapKeyFilter(QObject):
@@ -92,19 +91,20 @@ class MapWindow(QWidget, Ui_Form):
         extra_map_params = dict()
         # Если нужен поиск, то делается дополнительный запрос к Search API
         if self.check_param(self.lineEdit_search.text(), str):
-            seacrh_response = requests.get(SEARCH_API_SERVER,
-                                           params=self.get_seacrh_params())
-            if not seacrh_response:
-                self.show_error_message("кривой запрос к поиску: " +
-                                        str(seacrh_response.status_code))
+            geocoder_response = requests.get(GEOCODER_API_SERVER,
+                                             params=self.get_geocoder_params())
+            if not geocoder_response:
+                self.show_error_message("кривой запрос к геокодеру: " +
+                                        str(geocoder_response.content))
                 return
+            geocoder_json = geocoder_response.json()
             # Позиция для метки (по условию в центре)
             try:
-                self.mark_position = get_toponym_center_pos(seacrh_response.json())
+                self.mark_position = get_center_pos(geocoder_json)
             # На случай, если ничего не будет найдено
             except IndexError:
-                self.show_error_message("кривой запрос к поиску: " +
-                                        str(seacrh_response.status_code))
+                self.show_error_message("кривой запрос к геокодеру: " +
+                                        str(geocoder_response.content))
                 return
 
             # Дополнительные/новые параметры
@@ -113,9 +113,22 @@ class MapWindow(QWidget, Ui_Form):
                 "ll": f"{self.mark_position[0]},{self.mark_position[1]}",
             }
 
-            self.lineEdit_cordinates.setText(','.join(map(str, self.mark_position)))
+            # Установка адресса с помощью запроса к геокодеру
+            # (нужен отдельно, т.к. только он учитывает почтовый индекс отдельно)
+            address = get_geo_object(geocoder_json)["metaDataProperty"]["GeocoderMetaData"]["Address"]
+            address_text = address["formatted"]
+            # Если нужен почтовый индекс, то добавляем и его
+            if self.checkBox_post_office.isChecked():
+                try:
+                    address_text += ", " + address["postal_code"]
+                except KeyError as e:
+                    # Т.к. код не всегда есть, например если искать старну или город
+                    self.show_error_message("У найденного объекта нет почтового кода")
+            self.label_adress.setText(f"Адрес: {address_text}")
+
+            self.lineEdit_cordinates.setText(f"{self.mark_position[0]},{self.mark_position[1]}")
             self.cordinates = self.mark_position[:]
-            self.lineEdit_search.setText('')
+            self.lineEdit_search.clear()
 
         elif self.mark_position:
             extra_map_params = {
@@ -150,13 +163,13 @@ class MapWindow(QWidget, Ui_Form):
         messege.resize(300, 150)
         messege.exec()
 
-    def get_seacrh_params(self) -> dict:
+    def get_geocoder_params(self) -> dict:
         params = {
-            "apikey": SEARCH_API_KEY,
-            "lang": "ru_RU",
-            "text": self.lineEdit_search.text(),
+            "apikey": GEOCODER_API_KEY,
+            "format": "json",
+            "geocode": self.lineEdit_search.text(),
             "results": 1,
-            "type": "geo",  # тип возвращаемого объекта - топоним
+            "lang": "ru_RU",
         }
 
         return params
@@ -237,6 +250,7 @@ class MapWindow(QWidget, Ui_Form):
 
     def clean_search(self):
         self.lineEdit_search.clear()
+        self.label_adress.setText("Адресс: ")
         self.mark_position = None
         self.show_map()
 
