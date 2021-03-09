@@ -113,7 +113,7 @@ class MapWindow(QWidget, Ui_Form):
                 "ll": f"{self.mark_position[0]},{self.mark_position[1]}",
             }
 
-            # Установка адресса с помощью запроса к геокодеру
+            # Установка адресса
             # (нужен отдельно, т.к. только он учитывает почтовый индекс отдельно)
             address = get_geo_object(geocoder_json)["metaDataProperty"]["GeocoderMetaData"]["Address"]
             address_text = address["formatted"]
