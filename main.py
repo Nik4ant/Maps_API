@@ -53,6 +53,7 @@ class MapWindow(QWidget, Ui_Form):
 
         self.btn_view.clicked.connect(self.change_map_view)
         self.button_show.clicked.connect(self.show_map)
+        self.button_clean.clicked.connect(self.clean_search)
         self.lineEdit_cordinates.setText(','.join(map(str, self.cordinates)))
         self.lineEdit_scale.setText(str(self.scale))
 
@@ -113,6 +114,7 @@ class MapWindow(QWidget, Ui_Form):
             }
 
             self.lineEdit_cordinates.setText(','.join(map(str, self.mark_position)))
+            self.cordinates = self.mark_position[:]
             self.lineEdit_search.setText('')
 
         elif self.mark_position:
@@ -231,6 +233,10 @@ class MapWindow(QWidget, Ui_Form):
     def change_map_view(self):
         views = ['map', 'sat', 'sat,skl']
         self.map_view = views[(views.index(self.map_view) + 1) % len(views)]
+        self.show_map()
+
+    def clean_search(self):
+        self.mark_position = None
         self.show_map()
 
 

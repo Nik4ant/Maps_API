@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>622</width>
-    <height>528</height>
+    <height>481</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,35 +30,29 @@
               </font>
              </property>
              <property name="text">
-              <string>Запрос (второстепенно):</string>
+              <string>Запрос: </string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QLineEdit" name="lineEdit_search"/>
            </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="hlayout_cordinates">
            <item>
-            <widget class="QLabel" name="label_cordinates">
+            <widget class="QPushButton" name="button_clean">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>25</height>
+              </size>
+             </property>
              <property name="font">
               <font>
-               <pointsize>11</pointsize>
+               <family>Segoe UI Semibold</family>
+               <pointsize>9</pointsize>
               </font>
              </property>
              <property name="text">
-              <string>Координаты: </string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="lineEdit_cordinates">
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-              </font>
+              <string>Сброс</string>
              </property>
             </widget>
            </item>
@@ -66,26 +60,85 @@
          </item>
          <item>
           <layout class="QHBoxLayout" name="hlayout_scale">
+           <property name="spacing">
+            <number>0</number>
+           </property>
            <item>
-            <widget class="QLabel" name="label_scale">
-             <property name="font">
-              <font>
-               <pointsize>11</pointsize>
-              </font>
+            <layout class="QHBoxLayout" name="hlayout_cordinates">
+             <property name="spacing">
+              <number>6</number>
              </property>
-             <property name="text">
-              <string>Масштаб: </string>
-             </property>
-            </widget>
+             <item>
+              <widget class="QLabel" name="label_cordinates">
+               <property name="font">
+                <font>
+                 <pointsize>11</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Координаты: </string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="lineEdit_cordinates">
+               <property name="maximumSize">
+                <size>
+                 <width>150</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>10</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
            <item>
-            <widget class="QLineEdit" name="lineEdit_scale">
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-              </font>
-             </property>
-            </widget>
+            <layout class="QHBoxLayout" name="horizontalLayout_2">
+             <item>
+              <widget class="QLabel" name="label_scale">
+               <property name="font">
+                <font>
+                 <pointsize>11</pointsize>
+                </font>
+               </property>
+               <property name="layoutDirection">
+                <enum>Qt::LeftToRight</enum>
+               </property>
+               <property name="text">
+                <string>Масштаб: </string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="lineEdit_scale">
+               <property name="maximumSize">
+                <size>
+                 <width>36</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>10</pointsize>
+                </font>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </item>
@@ -96,7 +149,7 @@
          <property name="minimumSize">
           <size>
            <width>0</width>
-           <height>30</height>
+           <height>36</height>
           </size>
          </property>
          <property name="font">
