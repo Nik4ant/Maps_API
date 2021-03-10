@@ -36,11 +36,11 @@ class MapWindow(QWidget, Ui_Form):
         self.cordinates = [40.0, 52.0]
         self.mark_position = None
         self.scale = DEFAULT_SCALE
-        self.map_view = 'map'
+        self.map_view = "map"
+        self.previous_search = ""
 
         # Инициализация UI
         self.setupUi(self)
-        # pyuic5 form.ui
         self.initUI()
         self.show_map()
 
@@ -53,6 +53,9 @@ class MapWindow(QWidget, Ui_Form):
         self.btn_view.clicked.connect(self.change_map_view)
         self.button_show.clicked.connect(self.show_map)
         self.button_clean.clicked.connect(self.clean_search)
+
+        self.checkBox_post_office.clicked.connect(self.change_post_office_index)
+
         self.lineEdit_cordinates.setText(','.join(map(str, self.cordinates)))
         self.lineEdit_scale.setText(str(self.scale))
 
@@ -113,13 +116,23 @@ class MapWindow(QWidget, Ui_Form):
                 "ll": f"{self.mark_position[0]},{self.mark_position[1]}",
             }
 
-            # Установка адресса с помощью запроса
+            # Установка адресса
+            # (нужен отдельно, т.к. только он учитывает почтовый индекс отдельно)
             address = get_geo_object(geocoder_json)["metaDataProperty"]["GeocoderMetaData"]["Address"]
             address_text = address["formatted"]
+            # Если нужен почтовый индекс, то добавляем и его
+            if self.checkBox_post_office.isChecked():
+                try:
+                    address_text += ", " + address["postal_code"]
+                except KeyError as e:
+                    # Т.к. код не всегда есть, например если искать старну или город
+                    self.show_error_message("У найденного объекта нет почтового кода")
             self.label_adress.setText(f"Адрес: {address_text}")
 
             self.lineEdit_cordinates.setText(f"{self.mark_position[0]},{self.mark_position[1]}")
             self.cordinates = self.mark_position[:]
+
+            self.previous_search = self.lineEdit_search.text()
             self.lineEdit_search.clear()
 
         elif self.mark_position:
@@ -238,6 +251,14 @@ class MapWindow(QWidget, Ui_Form):
     def change_map_view(self):
         views = ['map', 'sat', 'sat,skl']
         self.map_view = views[(views.index(self.map_view) + 1) % len(views)]
+        self.show_map()
+
+    def change_post_office_index(self, checked: bool):
+        # Если поисковый запрос не изменился от предыдущего, то надо выполнить
+        # тот же запрос, что и был в прошлый раз
+        if (self.previous_search == self.lineEdit_search.text() or not
+                self.check_param(self.lineEdit_search.text(), str)):
+            self.lineEdit_search.setText(self.previous_search)
         self.show_map()
 
     def clean_search(self):
