@@ -53,8 +53,8 @@ class MapWindow(QWidget, Ui_Form):
         self.btn_view.clicked.connect(self.change_map_view)
         self.button_show.clicked.connect(self.show_map)
         self.button_clean.clicked.connect(self.clean_search)
-
         self.checkBox_post_office.clicked.connect(self.change_post_office_index)
+        self.pixmap_map.mouseReleaseEvent = self.map_on_click
 
         self.lineEdit_cordinates.setText(','.join(map(str, self.cordinates)))
         self.lineEdit_scale.setText(str(self.scale))
@@ -69,7 +69,7 @@ class MapWindow(QWidget, Ui_Form):
         indent = 15
         self.btn_view.move(indent, self.minimumHeight() - self.btn_view.height() - indent)
 
-    def show_map(self):
+    def show_map(self, was_click=False):
         # Координаты
         old_cordinates = self.cordinates
         cordinates = self.lineEdit_cordinates.text().split(',')
@@ -92,10 +92,14 @@ class MapWindow(QWidget, Ui_Form):
 
         # Дополнительные параметры к карте, либо их замена при запросе к поиску
         extra_map_params = dict()
-        # Если нужен поиск, то делается дополнительный запрос к Search API
-        if self.check_param(self.lineEdit_search.text(), str):
+        # Если нужен поиск, то делается дополнительный запрос к геокодеру
+        is_search_needed = self.check_param(self.lineEdit_search.text(), str)
+        if is_search_needed or was_click:
+            # Параметры для геокодера формируются с учётом причины запроса
+            # (поиск по названию или координатам)
+            geocoder_params = self.get_geocoder_params(bool(is_search_needed and not was_click))
             geocoder_response = requests.get(GEOCODER_API_SERVER,
-                                             params=self.get_geocoder_params())
+                                             params=geocoder_params)
             if not geocoder_response:
                 self.show_error_message("кривой запрос к геокодеру: " +
                                         str(geocoder_response.content))
@@ -134,7 +138,6 @@ class MapWindow(QWidget, Ui_Form):
 
             self.previous_search = self.lineEdit_search.text()
             self.lineEdit_search.clear()
-
         elif self.mark_position:
             extra_map_params = {
                 "pt": f"{self.mark_position[0]},{self.mark_position[1]},pm2blm",
@@ -153,6 +156,24 @@ class MapWindow(QWidget, Ui_Form):
 
         self.pixmap_map.setPixmap(pixmap)
 
+    def map_on_click(self, event):
+        # Масштаб
+        z = self.lineEdit_scale.text()
+        if not self.check_param(z, int) or 0 > int(z) or int(z) > 17:
+            self.show_error_message("Некорректный масштаб")
+            return
+        # Координаты мыши
+        x, y = event.localPos().x(), event.localPos().y()
+        z = int(z)
+        # ВАЖНО!!!
+        # Из-за того, что координаты клика x и y целые числа возможны неточности
+        # Получение географических координат в соответсвии с кликом
+        lon, lat = XY_to_lon_lat(x, y, z, *self.cordinates)
+        self.mark_position = [lon, lat]
+        self.cordinates = [lon, lat]
+        self.lineEdit_cordinates.setText(','.join(map(str, self.cordinates)))
+        self.show_map(was_click=True)
+
     def show_error_message(self, error: str):
         error_text = f'''
 Невозможно отобразить участок карты с параметрами:
@@ -168,14 +189,23 @@ class MapWindow(QWidget, Ui_Form):
         messege.resize(300, 150)
         messege.exec()
 
-    def get_geocoder_params(self) -> dict:
-        params = {
-            "apikey": GEOCODER_API_KEY,
-            "format": "json",
-            "geocode": self.lineEdit_search.text(),
-            "results": 1,
-            "lang": "ru_RU",
-        }
+    def get_geocoder_params(self, is_search_needed=True) -> dict:
+        if is_search_needed:
+            params = {
+                "apikey": GEOCODER_API_KEY,
+                "format": "json",
+                "geocode": self.lineEdit_search.text(),
+                "results": 1,
+                "lang": "ru_RU",
+            }
+        else:
+            params = {
+                "apikey": GEOCODER_API_KEY,
+                "format": "json",
+                "geocode": ','.join(map(str, self.cordinates)),
+                "results": 1,
+                "lang": "ru_RU",
+            }
 
         return params
 
