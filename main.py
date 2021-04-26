@@ -107,7 +107,7 @@ class MapWindow(QWidget, Ui_Form):
             geocoder_json = geocoder_response.json()
             # Позиция для метки (по условию в центре)
             try:
-                self.mark_position = get_center_pos(geocoder_json)
+                self.mark_position = list(get_center_pos(geocoder_json))
             # На случай, если ничего не будет найдено
             except IndexError:
                 self.show_error_message("кривой запрос к геокодеру: " +
@@ -173,6 +173,17 @@ class MapWindow(QWidget, Ui_Form):
         self.cordinates = [lon, lat]
         self.lineEdit_cordinates.setText(','.join(map(str, self.cordinates)))
         self.show_map(was_click=True)
+        if event.button() == 2:
+            org_coords, info = organisation_info((lon, lat))
+            dist = lonlat_distance((lon, lat), org_coords)
+            # print(dist, info)
+            if dist < 50:
+                #     /\ Много неточностей, находит рядом редко, так что, если хотите увидеть в действии,
+                # лучше поставить больше допустимое значение
+                print(f'По координатам {lon}, {lat} найдена организация:\n\n', info, sep='\n')
+                message = QMessageBox(parent=self, text=f"По координатам {lon}, {lat} найдена организация:\n\n" + info)
+                message.setWindowTitle('Организация')
+                message.exec()
 
     def show_error_message(self, error: str):
         error_text = f'''
@@ -287,7 +298,7 @@ class MapWindow(QWidget, Ui_Form):
         # Если поисковый запрос не изменился от предыдущего, то надо выполнить
         # тот же запрос, что и был в прошлый раз
         if (self.previous_search == self.lineEdit_search.text() or not
-                self.check_param(self.lineEdit_search.text(), str)):
+        self.check_param(self.lineEdit_search.text(), str)):
             self.lineEdit_search.setText(self.previous_search)
         self.show_map()
 
